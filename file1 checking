@@ -1,0 +1,238 @@
+#include <SD.h>
+#include <TMRpcm.h>
+#include <SPI.h>
+
+// Pin definitions
+#define TRIGGER_PIN 3  // HC-SR04 trigger pin
+#define ECHO_PIN 2     // HC-SR04 echo pin
+#define TRIGGER_PIN2 6  // HC-SR04 trigger pin
+#define ECHO_PIN2 8     // HC-SR04 echo pin
+#define WATER_SENSOR_PIN A5 // Water sensor pin
+#define FLAME_SENSOR_PIN A1 // Flame sensor pin
+#define VIBRATION_MOTOR_PIN 5 // Vibration motor pin
+
+// SD card chip select pin
+#define SD_CS_PIN 10
+
+// Define the TMRCpcm object
+TMRpcm audioPlayer;
+
+float distance = 0;
+float distance2 = 0;
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(TRIGGER_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(TRIGGER_PIN2, OUTPUT);
+  pinMode(ECHO_PIN2, INPUT);
+  pinMode(WATER_SENSOR_PIN, INPUT);
+  pinMode(FLAME_SENSOR_PIN, INPUT);
+  pinMode(VIBRATION_MOTOR_PIN, OUTPUT);
+
+  // Initialize the SD card
+  if (!SD.begin(SD_CS_PIN)) {
+    Serial.println("SD card initialization failed!");
+    return;
+  }
+
+  audioPlayer.speakerPin = 9;
+  // Set the volume (0-7)
+  audioPlayer.setVolume(10);
+
+}
+
+void loop() {
+  // Check for obstacle using HC-SR04
+  if (checkObstacle() && checkWaterSensor()) {
+    // Vibrate the motor
+    vibrateMotor();
+    if(distance<30 && distance2<30){
+      audioPlayer.play("FrontOW.wav");
+      while (audioPlayer.isPlaying()) {
+        // Wait for audio to finish playing
+      }
+      Serial.println("In front, there is an Obstacle and water.");
+      Serial.print("Distance1: ");
+      Serial.println(distance);
+      Serial.print("Distance2: ");
+      Serial.println(distance2);
+    }
+    else if(distance<10){
+      audioPlayer.play("LeftOW.wav");
+      while (audioPlayer.isPlaying()) {
+        // Wait for audio to finish playing
+      }
+      Serial.println("There is an Obstacle to your left and water.");
+      Serial.print("Distance1: ");
+      Serial.println(distance);
+      Serial.print("Distance2: ");
+      Serial.println(distance2);
+    }
+    else if(distance2<10){
+      audioPlayer.play("RightOW.wav");
+      while (audioPlayer.isPlaying()) {
+        // Wait for audio to finish playing
+      }
+      Serial.println("There is an Obstacle to your right and water.");
+      Serial.print("Distance1: ");
+      Serial.println(distance);
+      Serial.print("Distance2: ");
+      Serial.println(distance2);
+    }
+  }
+
+  else if (checkObstacle() && checkFlameSensor()) {
+      // Vibrate the motor
+      vibrateMotor();
+      if(distance<30 && distance2<30){
+        audioPlayer.play("FrontOF.wav");
+        while (audioPlayer.isPlaying()) {
+          // Wait for audio to finish playing
+        }
+        Serial.println("In front, there is an Obstacle and flame.");
+        Serial.print("Distance1: ");
+        Serial.println(distance);
+        Serial.print("Distance2: ");
+        Serial.println(distance2);
+      }
+      else if(distance<10){
+        audioPlayer.play("LeftOF.wav");
+        while (audioPlayer.isPlaying()) {
+          // Wait for audio to finish playing
+        }
+        Serial.println("There is flame and an obstacle to your left.");
+        Serial.print("Distance1: ");
+        Serial.println(distance);
+        Serial.print("Distance2: ");
+        Serial.println(distance2);
+      }
+      else if(distance2<10){
+        audioPlayer.play("RightOF.wav");
+        while (audioPlayer.isPlaying()) {
+          // Wait for audio to finish playing
+        }
+        Serial.println("There is an Obstacle to your right and flame.");
+        Serial.print("Distance1: ");
+        Serial.println(distance);
+        Serial.print("Distance2: ");
+        Serial.println(distance2);
+      }
+    }
+
+  else if (checkObstacle()) {
+    // Vibrate the motor
+    vibrateMotor();
+    if(distance<30 && distance2<30){
+      audioPlayer.play("FrontO.wav");
+      while (audioPlayer.isPlaying()) {
+        // Wait for audio to finish playing
+      }
+      Serial.println("In front, there is an Obstacle.");
+      Serial.print("Distance1: ");
+      Serial.println(distance);
+      Serial.print("Distance2: ");
+      Serial.println(distance2);
+    }
+    else if(distance<10){
+      audioPlayer.play("LeftO.wav");
+      while (audioPlayer.isPlaying()) {
+        // Wait for audio to finish playing
+      }
+      Serial.println("There is an Obstacle to your left.");
+      Serial.print("Distance1: ");
+      Serial.println(distance);
+      Serial.print("Distance2: ");
+      Serial.println(distance2);
+    }
+    else if(distance2<10){
+      audioPlayer.play("RightO.wav");
+      while (audioPlayer.isPlaying()) {
+        // Wait for audio to finish playing
+      }
+      Serial.println("There is an Obstacle to your right.");
+      Serial.print("Distance1: ");
+      Serial.println(distance);
+      Serial.print("Distance2: ");
+      Serial.println(distance2);
+    }
+  }
+
+  // Check for water sensor
+  else if (checkWaterSensor()) {
+    // Play audio file
+    audioPlayer.play("Water.wav");
+    while (audioPlayer.isPlaying()) {
+      // Wait for audio to finish playing
+    }
+    // Vibrate the motor
+    vibrateMotor();
+    Serial.println("Water is present");
+  }
+
+  // Check for flame sensor
+  else if (checkFlameSensor()) {
+    // Play audio file
+    audioPlayer.play("Flame.wav");
+    while (audioPlayer.isPlaying()) {
+      // Wait for audio to finish playing
+    }
+    // Vibrate the motor
+    vibrateMotor();
+    Serial.println("Flame is present");
+  }
+}
+
+// Function to check obstacle using HC-SR04
+bool checkObstacle() {
+  digitalWrite(TRIGGER_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIGGER_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIGGER_PIN, LOW);
+
+  long duration = pulseIn(ECHO_PIN, HIGH);
+  distance = duration * 0.034 / 2;
+
+  digitalWrite(TRIGGER_PIN2, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIGGER_PIN2, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIGGER_PIN2, LOW);
+
+  long duration2 = pulseIn(ECHO_PIN2, HIGH);
+  distance2 = duration2 * 0.034 / 2;
+
+  if (distance < 10 || distance2 < 10) { // Change the threshold distance as needed
+    return true;
+  } else {
+    return false;
+  }
+}
+
+// Function to check water sensor
+bool checkWaterSensor() {
+  int waterSensorValue = analogRead(WATER_SENSOR_PIN);
+  if (waterSensorValue > 500) { // Change the threshold value as needed
+    return true;
+  } else {
+    return false;
+  }
+}
+
+// Function to check flame sensor
+bool checkFlameSensor() {
+  int flameSensorValue = analogRead(FLAME_SENSOR_PIN);
+  if (flameSensorValue < 500) { // Change the threshold value as needed
+    return true;
+  } else {
+    return false;
+  }
+}
+
+// Function to vibrate the motor 
+void vibrateMotor() { 
+  digitalWrite(VIBRATION_MOTOR_PIN, HIGH);
+  delay(500); // Vibrate for 0.5 seconds (adjust as needed)
+  digitalWrite(VIBRATION_MOTOR_PIN, LOW);
+}
